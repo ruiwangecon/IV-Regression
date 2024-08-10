@@ -1,6 +1,7 @@
 ## Code for the project 'Semiparametric IV Regression without Exclusion Restrictions' by Wayne Gao and Rui Wang
 ## It is replicating the empirical results in the Application: Family background variables
 
+## packages
 library(haven)
 library(sandwich)
 library(randomForest)
@@ -12,14 +13,14 @@ rm(list=ls())
 ## read data
 data_nlsy <- read_dta("NLSY79.dta")
 
-# parameters of CI
-alpha <- 0.05
-q <- qnorm(1-alpha/2) 
+## parameters of CI
+alpha <- 0.05           # significance level
+q <- qnorm(1-alpha/2)   # quantile
 
-# dependent variable
+## dependent variable
 Y <- log(data_nlsy$EARNINGS)
 
-# features
+## features
 S <- data_nlsy$S               # years of schoolings
 female <- data_nlsy$FEMALE     # whether an individual is female
 black <- data_nlsy$ETHBLACK    # whether an individual is black
@@ -27,13 +28,13 @@ marr <- data_nlsy$MARRIED      # whether an individual is married
 exp<- data_nlsy$EXP            # working experience
 hour <- data_nlsy$HOURS        # working hours 
 
-#family background variables
+## family background variables
 SM <- data_nlsy$SM             # mothers' education
 SF <- data_nlsy$SF             # fathers' education
 SMF <- (SM + SF)/2             
 sib <- data_nlsy$SIBLINGS      # number of siblings
 
-#region indicators
+## region indicators
 regnc <- data_nlsy$REGNC
 regne <- data_nlsy$REGNE
 regs <- data_nlsy$REGS
@@ -117,7 +118,7 @@ sd2_2 <- sqrt(diag(var2_2))            # standard error
 CI2_2 <- cbind(est2_2 - q * sd2_2, est2_2+ q * sd2_2)  # confidence interval
 
 
-## Estimation III: discretization
+## Estimation III: discretized estimator
 exp_ind <- as.numeric(exp <= quantile(exp,probs=1/2))       # indicator for exp>median(exp)
 hour_ind <- as.numeric(hour <= quantile(hour, probs=1/2))   # indicator for working hours
 SMF_ind <- as.numeric(SMF <= quantile(SMF, probs=1/2))      # indicator of parents' education
@@ -155,7 +156,7 @@ CI_dis<- cbind(est_dis - q*sd_dis, est_dis + q*sd_dis)     # estimated CI
 ## OLS with instruments
 WW_2 <- cbind(S, female, black, marr, exp, hour,  regnc, regne, regs, SMF, sib) # all regressors
 reg3_2 <- lm(Y ~ WW_2)
-est3_2 <- reg3_2$coefficients
+est3_2 <- reg3_2$coefficients 
 
 # standard error of OLS
 H3_2 <- solve(t(W_2) %*% W_2 /n)                             # E[W_i'W_i]
@@ -166,12 +167,11 @@ sd3_2 <- sqrt(diag(var3_2))
 CI3_2<- cbind(est3_2 - q*sd3_2, est3_2 + q*sd3_2)            # estimated CI
 
 
-# OLS without instruments 
+## OLS without instruments 
 WW2_2 <- cbind(S, female, black, marr, exp, hour, regnc, regne, regs)  # all regressors
 W2_2 <-cbind(rep(1,n), S, female, black, marr, exp, hour, regnc, regne, regs)
 reg4_2 <- lm(Y ~ WW2_2)
 est4_2 <- reg4_2$coefficients
-
 
 # standard error of OLS
 H4_2 <- solve(t(W2_2) %*% W2_2 /n)                                  # E[W_i'W_i]
@@ -188,17 +188,16 @@ Zall_2 <- cbind(rep(1,n), female, black, marr, exp, hour, regnc, regne, regs, SM
 Xall <- cbind(rep(1,n), S, female, black, marr, exp, hour, regnc, regne, regs)
 est5_2<- solve(t(Xall) %*% Zall_2 %*% solve(t(Zall_2) %*% Zall_2) %*% t(Zall_2) %*% Xall) %*% t(Xall) %*% Zall_2 %*% solve(t(Zall_2) %*% Zall_2) %*% t(Zall_2) %*% Y
 
-
 # Calculate H5 (2sls standard error)
 H5_2 <- t(Xall) %*% Zall_2 %*% solve(t(Zall_2) %*% Zall_2) %*% t(Zall_2) %*% Xall / n
 O5_2 <- t(Zall_2) %*% (Zall_2 * ((Y - Xall %*% est5_2) %*% rep(1,ncol(Zall_2)))^2) / n
 V5_2 <- t(Xall) %*% Zall_2 %*% solve(t(Zall_2) %*% Zall_2) %*% O5_2 %*% solve(t(Zall_2) %*% Zall_2) %*% t(Zall_2) %*% Xall
 var5_2 <- solve(H5_2) %*% V5_2 %*% solve(H5_2) / n
-sd5_2 <- sqrt(diag(var5_2))
-CI5_2<- cbind(est5_2 - q*sd5_2, est5_2 + q*sd5_2)
+sd5_2 <- sqrt(diag(var5_2))                           # estimated standard error
+CI5_2<- cbind(est5_2 - q*sd5_2, est5_2 + q*sd5_2)     # confidence interval
 
 
-## 2sls with parents' edu
+## 2sls with parents' education
 # Create all instruments and regressors
 Zall_par <- cbind(rep(1,n), female, black, marr, exp, hour, regnc, regne, regs, SMF)
 est6_2<- solve(t(Xall) %*% Zall_par %*% solve(t(Zall_par) %*% Zall_par) %*% t(Zall_par) %*% Xall) %*% t(Xall) %*% Zall_par %*% solve(t(Zall_par) %*% Zall_par) %*% t(Zall_par) %*% Y
@@ -208,8 +207,8 @@ H6_2 <- t(Xall) %*% Zall_par %*% solve(t(Zall_par) %*% Zall_par) %*% t(Zall_par)
 O6_2 <- t(Zall_par) %*% (Zall_par * ((Y - Xall %*% est6_2) %*% rep(1,ncol(Zall_par)))^2) / n
 V6_2 <- t(Xall) %*% Zall_par %*% solve(t(Zall_par) %*% Zall_par) %*% O6_2 %*% solve(t(Zall_par) %*% Zall_par) %*% t(Zall_par) %*% Xall
 var6_2 <- solve(H6_2) %*% V6_2 %*% solve(H6_2) / n
-sd6_2 <- sqrt(diag(var6_2))
-CI6_2<- cbind(est6_2 - q*sd6_2, est6_2 + q*sd6_2)
+sd6_2 <- sqrt(diag(var6_2))                            # estimated standard error
+CI6_2<- cbind(est6_2 - q*sd6_2, est6_2 + q*sd6_2)      # confidence interval
 
 
 ## 2sls with number of siblings
@@ -222,6 +221,6 @@ H7_2 <- t(Xall) %*% Zall_sib %*% solve(t(Zall_sib) %*% Zall_sib) %*% t(Zall_sib)
 O7_2 <- t(Zall_sib) %*% (Zall_sib * ((Y - Xall %*% est7_2) %*% rep(1,ncol(Zall_sib)))^2) / n
 V7_2 <- t(Xall) %*% Zall_sib %*% solve(t(Zall_sib) %*% Zall_sib) %*% O7_2 %*% solve(t(Zall_sib) %*% Zall_sib) %*% t(Zall_sib) %*% Xall
 var7_2 <- solve(H7_2) %*% V7_2 %*% solve(H7_2) / n
-sd7_2 <- sqrt(diag(var7_2))
-CI7_2<- cbind(est7_2 - q*sd7_2, est7_2 + q*sd7_2)
+sd7_2 <- sqrt(diag(var7_2))                             # estimated standard error
+CI7_2<- cbind(est7_2 - q*sd7_2, est7_2 + q*sd7_2)       # confidence interval
 
