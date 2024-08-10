@@ -1,4 +1,4 @@
-# Simulation Code for IV Regression without Exclusion Restrictions
+# Code for IV Regression without Exclusion Restrictions
 
 This repository contains R code for the empirical results of the paper 'IV Regressions without Exclusion Restrictions,' by Wayne Gao and Rui Wang.
 
